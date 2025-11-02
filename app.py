@@ -13,7 +13,7 @@ def initialize_conversation():
     if 'conversation_id' not in st.session_state:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO conversations DEFAULT VALUES")
+        cursor.execute("INSERT INTO conversation_session DEFAULT VALUES")
         st.session_state.conversation_id = cursor.lastrowid
         conn.commit()
         conn.close()

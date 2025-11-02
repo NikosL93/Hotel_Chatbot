@@ -6,7 +6,7 @@ def setup_feedback_db():
 
     # Create conversations table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS conversations (
+        CREATE TABLE IF NOT EXISTS conversation_session (
             conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -21,7 +21,7 @@ def setup_feedback_db():
             response TEXT,
             feedback TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (conversation_id) REFERENCES conversations (conversation_id)
+            FOREIGN KEY (conversation_id) REFERENCES conversation_session (conversation_id)
         )
     ''')
 
