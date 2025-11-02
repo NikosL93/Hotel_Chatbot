@@ -16,6 +16,7 @@ FAQ_VECTOR_STORE_PATH = "faq_vector_store"
 REVIEWS_VECTOR_STORE_PATH = "reviews_vector_store"
 POIS_VECTOR_STORE_PATH = "pois_vector_store"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+GOOD_EXAMPLES_VECTOR_STORE_PATH = "good_examples_vector_store"
 
 # Load environment variables from .env file
 load_dotenv()
@@ -42,6 +43,12 @@ try:
 except Exception as e:
     print(f"Error loading POIs vector store: {e}")
     pois_vector_store = None
+
+try:
+    good_examples_vector_store = FAISS.load_local(GOOD_EXAMPLES_VECTOR_STORE_PATH, embeddings, allow_dangerous_deserialization=True)
+except Exception as e:
+    print(f"Error loading good examples vector store: {e}")
+    good_examples_vector_store = None
 
 # --- TOOLS ---
 
@@ -87,6 +94,10 @@ def get_review_summary(topic: str) -> str:
         return "I'm sorry, I couldn't access the review information right now."
 
 
+
+
+# ... (rest of the imports)
+
 @tool
 def find_points_of_interest(query: str) -> list:
     """
@@ -102,7 +113,11 @@ def find_points_of_interest(query: str) -> list:
             poi_list = []
             for doc in results:
                 metadata = doc.metadata
-                poi_list.append((metadata['name'], metadata['address']))
+                poi_list.append({
+                    'name': metadata.get('name'),
+                    'address': metadata.get('address'),
+                    'category': metadata.get('category')
+                })
             return poi_list
         else:
             return ["I couldn't find any points of interest matching your query."]
@@ -155,9 +170,6 @@ def get_all_room_types() -> list:
     conn.close()
     return room_types
 
-# --- MEMORY --- disabled for token cost
-# memory = ConversationSummaryMemory(llm=ChatOpenAI(model="deepseek-chat", api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com/v1"), memory_key="chat_history", return_messages=True)
-
 # --- MAIN HANDLER ---
 
 def handle_user_input(user_question, language):
@@ -171,10 +183,20 @@ def handle_user_input(user_question, language):
 
     tools = [get_faq_answer, get_review_summary, find_points_of_interest, get_available_rooms, get_room_info, get_all_room_types]
 
+    # Retrieve good examples llm answers
+    examples = ""
+    if good_examples_vector_store:
+        results = good_examples_vector_store.similarity_search(user_question, k=2)
+        if results:
+            examples = "\n".join([f"Question: {doc.page_content}\nResponse: {doc.metadata['response']}" for doc in results])
+
     prompt_template = """
     You are a persuasive assistant for The Grand Cretan Resort Hotel. Your primary goal is to convince users to book a stay at the hotel. While answering their questions, always highlight the hotel's best features and create a sense of desirability. Do not ask follow-up questions, as you have no memory of the conversation.
-    When asked about rooms, you should first get all the available room types, then for each room type get the info and availability.
+    When asked about rooms, you should first get all the available room types, then for each room type get the info and availability. When the user asks a question in a language other than English, you must translate the query to English before using any of the tools.
     Answer only in this language: {language}.
+
+    Before answering, consider these examples of good answers to similar questions:
+    {examples}
     
     You have access to the following tools:
     {tools}
@@ -203,7 +225,8 @@ def handle_user_input(user_question, language):
 
     response = agent_executor.invoke({
         "input": user_question,
-        "language": language
+        "language": language,
+        "examples": examples
     })
 
     return response["output"]
