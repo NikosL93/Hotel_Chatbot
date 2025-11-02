@@ -108,4 +108,4 @@ if prompt := st.chat_input(ui["question_label"]):
             st.markdown(response)
             turn_id = log_turn(st.session_state.conversation_id, prompt, response)
             st.session_state.messages.append({"author": "bot", "message": response, "turn_id": turn_id})
-            st.rerun()
+    st.rerun()

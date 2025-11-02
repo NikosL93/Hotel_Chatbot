@@ -25,17 +25,6 @@ def setup_feedback_db():
         )
     ''')
 
-    # Create a table for data retention policy settings
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-    ''')
-
-    # Set default retention period to 30 days
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_period_days', '30')")
-
     conn.commit()
     conn.close()
     print("Feedback database setup complete.")
