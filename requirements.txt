@@ -8,3 +8,4 @@ faiss-cpu
 pandas==2.2.2
 langchain-huggingface
 streamlit
+langchain_core

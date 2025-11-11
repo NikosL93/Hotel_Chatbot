@@ -4,7 +4,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 # --- CONFIGURATION ---
 DB_PATH = 'hotel.db'
-VECTOR_STORE_PATH = "good_examples_vector_store"
+VECTOR_STORE_PATH = "vector_stores/good_examples_vector_store"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 def update_vector_store():

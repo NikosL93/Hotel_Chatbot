@@ -5,12 +5,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-FAQ_CSV_PATH = "faq.csv"
-REVIEWS_CSV_PATH = "hotel_Reviews_dataset.csv"
-POIS_CSV_PATH = "pois.csv"
-FAQ_VECTOR_STORE_PATH = "faq_vector_store"
-REVIEWS_VECTOR_STORE_PATH = "reviews_vector_store"
-POIS_VECTOR_STORE_PATH = "pois_vector_store"
+FAQ_CSV_PATH = "Datasets/faq.csv"
+REVIEWS_CSV_PATH = "Datasets/hotel_Reviews_dataset.csv"
+POIS_CSV_PATH = "Datasets/pois.csv"
+FAQ_VECTOR_STORE_PATH = "vector_stores/faq_vector_store"
+REVIEWS_VECTOR_STORE_PATH = "vector_stores/reviews_vector_store"
+POIS_VECTOR_STORE_PATH = "vector_stores/pois_vector_store"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 def setup():

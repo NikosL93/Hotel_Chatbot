@@ -1,5 +1,5 @@
 import streamlit as st
-from chatbot import handle_user_input
+from chatbot_logic import handle_user_input
 import sqlite3
 
 # --- UI CONFIGURATION ---
@@ -97,7 +97,8 @@ for msg in st.session_state.messages:
                     st.toast(ui["feedback_saved"])
 
 # --- USER INPUT ---
-if prompt := st.chat_input(ui["question_label"]):
+prompt = st.chat_input(ui["question_label"])
+if prompt:
     st.session_state.messages.append({"author": "user", "message": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)

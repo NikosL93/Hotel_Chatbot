@@ -12,11 +12,11 @@ from langchain_community.vectorstores import FAISS
 
 # --- CONFIGURATION ---
 
-FAQ_VECTOR_STORE_PATH = "faq_vector_store"
-REVIEWS_VECTOR_STORE_PATH = "reviews_vector_store"
-POIS_VECTOR_STORE_PATH = "pois_vector_store"
+FAQ_VECTOR_STORE_PATH = "vector_stores/faq_vector_store"
+REVIEWS_VECTOR_STORE_PATH = "vector_stores/reviews_vector_store"
+POIS_VECTOR_STORE_PATH = "vector_stores/pois_vector_store"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-GOOD_EXAMPLES_VECTOR_STORE_PATH = "good_examples_vector_store"
+GOOD_EXAMPLES_VECTOR_STORE_PATH = "vector_stores/good_examples_vector_store"
 
 # Load environment variables from .env file
 load_dotenv()
@@ -152,7 +152,7 @@ def get_room_info(room_type: str) -> str:
     """
     conn = sqlite3.connect('hotel.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT price_per_night FROM hotel_rooms WHERE UPPER(room_type) = UPPER(?)", (room_type.strip(),))
+    cursor.execute("SELECT price_per_night FROM hotel_rooms WHERE UPPER(room_type) = UPPER(?)" , (room_type.strip(),))
     result = cursor.fetchone()
     conn.close()
     if result:
@@ -178,7 +178,7 @@ def handle_user_input(user_question, language):
     llm = ChatOpenAI(
         model="deepseek-chat",
         api_key=DEEPSEEK_API_KEY,
-        base_url="https://api.deepseek.com/v1"
+        base_url="https://api.deepseek.com"
     )
 
     tools = [get_faq_answer, get_review_summary, find_points_of_interest, get_available_rooms, get_room_info, get_all_room_types]
