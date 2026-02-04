@@ -21,20 +21,25 @@ def update_vector_store():
     if not good_conversations:
         print("No new good conversations to add.")
         return
-
     print(f"Found {len(good_conversations)} good conversations.")
 
     print("Initializing embeddings model...")
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
 
-    # Create documents for the vector store
-    documents = [prompt for prompt, response in good_conversations]
-    metadatas = [{"response": response} for prompt, response in good_conversations]
+    # Prepare the data for the vector store
+    # We want to store the user's question (prompt) as the main text
+    # And the chatbot's answer (response) as extra information (metadata)
+    documents = []
+    metadatas = []
+    for prompt, response in good_conversations:
+        documents.append(prompt)  # The question goes here
+        metadatas.append({"response": response}) # The answer goes here as metadata
 
     print("Creating or updating the vector store...")
     try:
         # Load existing vector store
         vector_store = FAISS.load_local(VECTOR_STORE_PATH, embeddings, allow_dangerous_deserialization=True)
+        # Add (update) more embeddings to vector store
         vector_store.add_texts(texts=documents, metadatas=metadatas)
         print("Vector store updated.")
     except Exception as e:

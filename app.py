@@ -1,6 +1,7 @@
 import streamlit as st
 from chatbot_logic import handle_user_input
 import sqlite3
+from langchain.memory import ConversationBufferWindowMemory
 
 # --- UI CONFIGURATION ---
 st.set_page_config(page_title="The Grand Resort Hotel Chatbot", page_icon=":robot_face:")
@@ -13,10 +14,16 @@ def initialize_conversation():
     if 'conversation_id' not in st.session_state:
         conn = get_db_connection()
         cursor = conn.cursor()
+        # Create a new conversation session with current time
         cursor.execute("INSERT INTO conversation_session DEFAULT VALUES")
         st.session_state.conversation_id = cursor.lastrowid
         conn.commit()
         conn.close()
+
+    if 'memory' not in st.session_state:
+        # memory_key: The name of the variable in  prompt template ({chat_history})
+        # input_key: Tells the memory which specific input variable is the user's message (there are 3 variables: language, examples, input)
+        st.session_state.memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history", input_key="input")
 
 def log_turn(conversation_id, prompt, response):
     conn = get_db_connection()
@@ -62,7 +69,8 @@ if 'lang' not in st.session_state:
     st.session_state.lang = "en"
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    st.session_state.messages.append({"author": "bot", "message": UI_TRANSLATIONS[st.session_state.lang]["welcome_message"], "turn_id": 0})
+    # The turn_id is 0 for the initial welcome message
+    st.session_state.messages.append({"role": "bot", "message": UI_TRANSLATIONS[st.session_state.lang]["welcome_message"], "turn_id": 0})
 
 initialize_conversation()
 
@@ -73,7 +81,9 @@ selected_lang = st.sidebar.selectbox(
 
 if st.session_state.lang != selected_lang:
     st.session_state.lang = selected_lang
-    st.session_state.messages = [{"author": "bot", "message": UI_TRANSLATIONS[selected_lang]["welcome_message"], "turn_id": 0}]
+    st.session_state.messages = [{"role": "bot", "message": UI_TRANSLATIONS[selected_lang]["welcome_message"], "turn_id": 0}]
+    # Reset memory for new conversation
+    st.session_state.memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history", input_key="input")
     st.rerun()
 
 ui = UI_TRANSLATIONS.get(st.session_state.lang, UI_TRANSLATIONS["en"])
@@ -82,9 +92,11 @@ st.title(ui["title"])
 
 # --- DISPLAY CHAT HISTORY ---
 for msg in st.session_state.messages:
-    with st.chat_message(msg["author"]):
+    # "With" inserts messages in a block
+    with st.chat_message(msg["role"]):
         st.markdown(msg["message"])
-        if msg["author"] == "bot" and msg["turn_id"] > 0:
+        # Buttons for feedback
+        if msg["role"] == "bot" and msg["turn_id"] > 0:
             turn_id = msg["turn_id"]
             col1, col2 = st.columns(2)
             with col1:
@@ -95,18 +107,19 @@ for msg in st.session_state.messages:
                 if st.button(ui["feedback_bad"], key=f"bad_{turn_id}"):
                     save_feedback(turn_id, 'bad')
                     st.toast(ui["feedback_saved"])
+                    st.toast(ui["feedback_saved"])
 
 # --- USER INPUT ---
 prompt = st.chat_input(ui["question_label"])
 if prompt:
-    st.session_state.messages.append({"author": "user", "message": prompt})
+    st.session_state.messages.append({"role": "user", "message": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("bot"):
         with st.spinner("Thinking..."):
-            response = handle_user_input(prompt, st.session_state.lang)
+            response = handle_user_input(prompt, st.session_state.lang, st.session_state.memory)
             st.markdown(response)
             turn_id = log_turn(st.session_state.conversation_id, prompt, response)
-            st.session_state.messages.append({"author": "bot", "message": response, "turn_id": turn_id})
+            st.session_state.messages.append({"role": "bot", "message": response, "turn_id": turn_id})
     st.rerun()

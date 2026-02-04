@@ -7,7 +7,6 @@ from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.tools import tool
 from langchain_core.prompts import PromptTemplate
-from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.vectorstores import FAISS
 
 # --- CONFIGURATION ---
@@ -60,7 +59,7 @@ def get_faq_answer(question: str) -> str:
     Args:
         question: The question to search for in the FAQ.
     """
-    print(f"--- Searching FAQ for: {question} ---")
+    print(f"\n--- Searching FAQ for: {question}")
     if faq_vector_store:
         results = faq_vector_store.similarity_search(question, k=3)
         if results:
@@ -77,9 +76,9 @@ def get_review_summary(topic: str) -> str:
     Summarizes customer reviews based on a specific topic using vector similarity search.
 
     Args:
-        topic: The topic to search for in the reviews ("breakfast", "staff", "pool",...).
+        topic: The topic to search for in the reviews ("breakfast", "staff", "pool",...). 
     """
-    print(f"--- Summarizing reviews for: {topic} ---")
+    print(f"\n--- Summarizing reviews for: {topic}")
     if reviews_vector_store:
         results = reviews_vector_store.similarity_search(topic, k=3)
         if results:
@@ -94,19 +93,15 @@ def get_review_summary(topic: str) -> str:
         return "I'm sorry, I couldn't access the review information right now."
 
 
-
-
-# ... (rest of the imports)
-
 @tool
 def find_points_of_interest(query: str) -> list:
     """
     Finds points of interest relevant to a user's query using vector similarity search.
 
     Args:
-        query: A natural language query about points of interest ("museums near me", "good restaurants",...).
+        query: A natural language query about points of interest ("museums near me", "good restaurants",...). 
     """
-    print(f"--- Searching for POIs with query: {query} ---")
+    print(f"\n--- Searching for POIs with query: {query}")
     if pois_vector_store:
         results = pois_vector_store.similarity_search(query, k=3)
         if results:
@@ -172,18 +167,21 @@ def get_all_room_types() -> list:
 
 # --- MAIN HANDLER ---
 
-def handle_user_input(user_question, language):
+def handle_user_input(user_question, language, memory):
     """The main function of chatbot's logic."""
 
     llm = ChatOpenAI(
         model="deepseek-chat",
         api_key=DEEPSEEK_API_KEY,
-        base_url="https://api.deepseek.com"
+        base_url="https://api.deepseek.com",
+        model_kwargs={"extra_headers": {"X-Project-Name": "Hotel Chatbot"}},
+        metadata={"ls_provider": "openai", "ls_model_name": "deepseek-chat"},
+        streaming=False
     )
 
     tools = [get_faq_answer, get_review_summary, find_points_of_interest, get_available_rooms, get_room_info, get_all_room_types]
 
-    # Retrieve good examples llm answers
+    # Retrieve good examples of llm-answers, remember to run update_good_conversations_vector_store.py for updating the vector store with good examples
     examples = ""
     if good_examples_vector_store:
         results = good_examples_vector_store.similarity_search(user_question, k=2)
@@ -191,12 +189,17 @@ def handle_user_input(user_question, language):
             examples = "\n".join([f"Question: {doc.page_content}\nResponse: {doc.metadata['response']}" for doc in results])
 
     prompt_template = """
-    You are a persuasive assistant for The Grand Cretan Resort Hotel. Your primary goal is to convince users to book a stay at the hotel. While answering their questions, always highlight the hotel's best features and create a sense of desirability. Do not ask follow-up questions, as you have no memory of the conversation.
+    You are a persuasive assistant for The Grand Cretan Resort Hotel. Your primary goal is to convince users to book a stay at the hotel. While answering their questions, always highlight the hotel's best features and create a sense of desirability.
     When asked about rooms, you should first get all the available room types, then for each room type get the info and availability. When the user asks a question in a language other than English, you must translate the query to English before using any of the tools.
-    Answer only in this language: {language}.
+    Answer only in this language: {language}. 
+
+    Current conversation:
+    {chat_history}
 
     Before answering, consider these examples of good answers to similar questions:
     {examples}
+    
+    IMPORTANT: If the user's question is directly answered by one of the examples above, YOU MUST SKIP THE TOOLS. instead, your Thought should be "The answer is in the examples" and you should provide the Final Answer immediately.
     
     You have access to the following tools:
     {tools}
@@ -216,12 +219,18 @@ def handle_user_input(user_question, language):
     Question: {input}
     Thought:{agent_scratchpad}
     """
+    # agent_scratchpad = variable where LangChain stores the intermediate steps (Thoughts, Actions, and Observations) like memory for generating asnwer
 
     prompt = PromptTemplate.from_template(prompt_template)
 
     agent = create_react_agent(llm, tools, prompt)
 
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    agent_executor = AgentExecutor(
+        agent=agent, 
+        tools=tools, 
+        verbose=True, 
+        memory=memory
+    )
 
     response = agent_executor.invoke({
         "input": user_question,
