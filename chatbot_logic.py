@@ -156,7 +156,7 @@ def get_room_info(room_type: str) -> str:
         return f"Sorry, I couldn't find any information about {room_type} rooms."
 
 @tool
-def get_all_room_types() -> list:
+def get_all_room_types(query: str = None) -> list:
     """Gets all available room types from the database."""
     conn = sqlite3.connect('hotel.db')
     cursor = conn.cursor()
