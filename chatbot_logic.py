@@ -174,9 +174,6 @@ def handle_user_input(user_question, language, memory):
         model="deepseek-chat",
         api_key=DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com",
-        model_kwargs={"extra_headers": {"X-Project-Name": "Hotel Chatbot"}},
-        metadata={"ls_provider": "openai", "ls_model_name": "deepseek-chat"},
-        streaming=False
     )
 
     tools = [get_faq_answer, get_review_summary, find_points_of_interest, get_available_rooms, get_room_info, get_all_room_types]
