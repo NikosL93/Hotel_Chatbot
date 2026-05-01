@@ -198,10 +198,12 @@ def handle_user_input(user_question, language, memory):
     
     IMPORTANT: If the user's question is directly answered by one of the examples above, YOU MUST SKIP THE TOOLS. instead, your Thought should be "The answer is in the examples" and you should provide the Final Answer immediately.
     
+    CRITICAL: Do not use double asterisks (**) for bolding or emphasis in your responses. Use plain text or other formatting if necessary.
+    
     You have access to the following tools:
     {tools}
 
-    Use the following format:
+    Use the following format strictly:
     Question: the input question you must answer
     Thought: you should always think about what to do
     Action: the action to take, should be one of [{tool_names}]
@@ -209,7 +211,7 @@ def handle_user_input(user_question, language, memory):
     Observation: the result of the action
     ... (this Thought/Action/Action Input/Observation can repeat N times)
     Thought: I now know the final answer
-    Final Answer: the final answer to the original input question.
+    Final Answer: the final answer to the original input question. YOU MUST ALWAYS USE THE "Final Answer:" PREFIX.
 
     Begin
 
@@ -226,7 +228,8 @@ def handle_user_input(user_question, language, memory):
         agent=agent, 
         tools=tools, 
         verbose=True, 
-        memory=memory
+        memory=memory,
+        handle_parsing_errors=True
     )
 
     response = agent_executor.invoke({
